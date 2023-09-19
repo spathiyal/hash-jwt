@@ -1,33 +1,25 @@
-/** Middleware for handling req authorization for routes. */
-
 const jwt = require("jsonwebtoken");
 const { SECRET_KEY } = require("../config");
-
-/** Middleware: Authenticate user. */
+const ExpressError = require("../expressError");
 
 function authenticateJWT(req, res, next) {
   try {
-    const tokenFromBody = req.body._token;
-    const payload = jwt.verify(tokenFromBody, SECRET_KEY);
-    req.user = payload; // create a current user
+    const payload = jwt.verify(req.body._token, SECRET_KEY);
+    req.user = payload;
     return next();
-  } catch (err) {
+  } catch (e) {
     return next();
   }
 }
 
-/** Middleware: Requires user is authenticated. */
-
 function ensureLoggedIn(req, res, next) {
   if (!req.user) {
-    return next({ status: 401, message: "Unauthorized" });
+    const e = new ExpressError("Unauthorized", 401);
+    return next(e);
   } else {
     return next();
   }
 }
-
-/** Middleware: Requires correct username. */
-
 function ensureCorrectUser(req, res, next) {
   try {
     if (req.user.username === req.params.username) {
@@ -40,10 +32,4 @@ function ensureCorrectUser(req, res, next) {
     return next({ status: 401, message: "Unauthorized" });
   }
 }
-// end
-
-module.exports = {
-  authenticateJWT,
-  ensureLoggedIn,
-  ensureCorrectUser
-};
+module.exports = { authenticateJWT, ensureLoggedIn, ensureCorrectUser };

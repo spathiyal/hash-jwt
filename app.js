@@ -1,24 +1,18 @@
-/** Express app for message.ly. */
-
+/** Express app for auth-api. */
 
 const express = require("express");
-const cors = require("cors");
-const { authenticateJWT } = require("./middleware/auth");
-
-const ExpressError = require("./expressError")
 const app = express();
+const routes = require("./routes/auth");
+const ExpressError = require("./expressError");
+const { authenticateJWT } = require("./middleware/auth");
+const cors = require("cors");
 
-// allow both form-encoded and json body parsing
-app.use(express.json());
-app.use(express.urlencoded({extended: true}));
-
-// allow connections to all routes from any browser
 app.use(cors());
-
-// get auth token for all routes
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(authenticateJWT);
 
-/** routes */
+app.use("/", routes);
 
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
@@ -28,24 +22,26 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/messages", messageRoutes);
 
-/** 404 handler */
+/** 404 catch --- passes to next handler. */
 
-app.use(function(req, res, next) {
-  const err = new ExpressError("Not Found", 404);
+app.use(function (req, res, next) {
+  const err = new ExpressError("Not found!", 404);
   return next(err);
 });
 
 /** general error handler */
 
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  if (process.env.NODE_ENV != "test") console.error(err.stack);
+app.use(function (err, req, res, next) {
+  // the default status is 500 Internal Server Error
+  let status = err.status || 500;
 
-  return res.json({
-    error: err,
-    message: err.message
+  // set the status and alert the user
+  return res.status(status).json({
+    error: {
+      message: err.message,
+      status: status,
+    },
   });
 });
-
 
 module.exports = app;
